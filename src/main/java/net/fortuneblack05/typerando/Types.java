@@ -31,7 +31,7 @@ public enum Types {
         this.displayName = displayName;
     }
 
-    // Convert a number back into a PokemonType
+    // Convert a number back into a Type
     public static Optional<Types> fromId(int id) {
         return Arrays.stream(values()).filter(t -> t.id == id).findFirst();
     }
