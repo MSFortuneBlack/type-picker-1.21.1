@@ -18,29 +18,45 @@ import java.util.Optional;
 @Mixin(PlayerEntity.class)
 public class PlayerEntityMixin {
 
-    // Notice we inject at "RETURN" here instead of "HEAD"
     @Inject(method = "getDisplayName", at = @At("RETURN"), cancellable = true)
-    private void appendLogoToDisplayName(CallbackInfoReturnable<Text> cir) {
+    private void formatDisplayName(CallbackInfoReturnable<Text> cir) {
         PlayerEntity player = (PlayerEntity) (Object) this;
 
         if (player.getWorld().isClient) {
-            // --- CLIENT SIDE (Floating Nametags) ---
+            // --- CLIENT SIDE (3D Floating Nametags) -> Logo on the RIGHT ---
             MinecraftClient client = MinecraftClient.getInstance();
             if (client.getNetworkHandler() != null) {
                 PlayerListEntry entry = client.getNetworkHandler().getPlayerListEntry(player.getUuid());
+
                 if (entry != null && entry.getDisplayName() != null) {
-                    // Copy the TAB name directly
-                    cir.setReturnValue(entry.getDisplayName());
+                    // Grab the raw text from the TAB menu
+                    String rawTabName = entry.getDisplayName().getString();
+
+                    if (!rawTabName.isEmpty()) {
+                        char firstChar = rawTabName.charAt(0);
+
+                        // Check if the first character is actually one of our logos
+                        if (firstChar >= '\uE001' && firstChar <= '\uE012') {
+                            String icon = String.valueOf(firstChar);
+
+                            // Take the player's name and append the logo to the RIGHT
+                            Text newName = cir.getReturnValue().copy()
+                                    .append(Text.literal(" " + icon).setStyle(Style.EMPTY.withColor(Formatting.WHITE)));
+
+                            cir.setReturnValue(newName);
+                        }
+                    }
                 }
             }
         } else {
-            // --- SERVER SIDE (Chat Messages & Death Messages) ---
+            // --- SERVER SIDE (Chat Messages) -> Logo on the LEFT ---
             Optional<Types> role = TypePicker.MANAGER.getRole(player.getUuid());
             if (role.isPresent()) {
-                // Grab whatever Minecraft generated, copy it, and stick the logo on the end
-                Text originalName = cir.getReturnValue();
-                Text newName = originalName.copy()
-                        .append(Text.literal(" " + role.get().tabIcon).setStyle(Style.EMPTY.withColor(Formatting.WHITE)));
+
+                // Put the logo on the LEFT, then append the player's name
+                Text newName = Text.literal(role.get().tabIcon + " ")
+                        .setStyle(Style.EMPTY.withColor(Formatting.WHITE))
+                        .append(cir.getReturnValue());
 
                 cir.setReturnValue(newName);
             }

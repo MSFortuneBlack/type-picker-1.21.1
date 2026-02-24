@@ -22,7 +22,7 @@ public class SplashTextMixin {
             // Check if it is the target player (ignores capitalization just in case)
             if ("MSFortuneBlack".equalsIgnoreCase(username)) {
                 // Overwrite the random splash with our custom message
-                cir.setReturnValue(new SplashTextRenderer("Fortune coding? impossible"));
+                cir.setReturnValue(new SplashTextRenderer("Follow Fortune on Twitch"));
             }
         }
     }
