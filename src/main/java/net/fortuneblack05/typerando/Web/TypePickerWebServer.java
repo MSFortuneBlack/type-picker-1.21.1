@@ -16,6 +16,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
+import java.util.UUID;
 
 public class TypePickerWebServer {
     private static HttpServer server;
@@ -52,7 +53,6 @@ public class TypePickerWebServer {
                     Optional<Types> currentType = TypePicker.MANAGER.getRole(player.getUuid());
                     pObj.addProperty("currentType", currentType.map(t -> t.displayName).orElse("None"));
 
-                    // Add current weights and blacklists
                     JsonObject weightsObj = new JsonObject();
                     JsonObject blacklistsObj = new JsonObject();
                     for (int i = 1; i <= 18; i++) {
@@ -78,7 +78,7 @@ public class TypePickerWebServer {
                         String body = new String(is.readAllBytes(), StandardCharsets.UTF_8);
                         JsonObject data = GSON.fromJson(body, JsonObject.class);
 
-                        String uuid = data.get("uuid").getAsString();
+                        String uuidStr = data.get("uuid").getAsString();
                         JsonArray types = data.getAsJsonArray("types");
 
                         for (JsonElement el : types) {
@@ -87,10 +87,24 @@ public class TypePickerWebServer {
                             double weight = t.get("weight").getAsDouble();
                             boolean blacklist = t.get("blacklist").getAsBoolean();
 
-                            TypePicker.MANAGER.setWeight(uuid, id, weight);
-                            TypePicker.MANAGER.setBlacklist(uuid, id, blacklist);
+                            TypePicker.MANAGER.setWeight(uuidStr, id, weight);
+                            TypePicker.MANAGER.setBlacklist(uuidStr, id, blacklist);
                         }
+
+                        // Save the data to the JSON file
                         TypePicker.MANAGER.save(mcServer);
+
+                        // --- NEW: Instantly sync the TAB list if the player is currently online ---
+                        try {
+                            UUID parsedUuid = UUID.fromString(uuidStr);
+                            ServerPlayerEntity target = mcServer.getPlayerManager().getPlayer(parsedUuid);
+                            if (target != null) {
+                                TypePicker.MANAGER.syncPlayerTab(target);
+                            }
+                        } catch (Exception ignored) {
+                            // Failsafe in case the UUID string format is weird
+                        }
+                        // --------------------------------------------------------------------------
 
                         String response = "{\"status\":\"success\"}";
                         exchange.getResponseHeaders().set("Content-Type", "application/json");
@@ -138,7 +152,6 @@ public class TypePickerWebServer {
                 .card-info p { margin: 0; font-size: 0.85em; color: #aaa; }
                 .card-info .type-badge { display: inline-block; margin-top: 8px; padding: 3px 8px; background: #333; border: 1px solid var(--neon); border-radius: 4px; color: var(--neon); font-size: 0.8em; font-weight: bold; }
 
-                /* Modal styling */
                 .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s; }
                 .modal-overlay.open { display: flex; opacity: 1; }
                 .modal-content { background: var(--panel); border: 2px solid var(--neon); box-shadow: 0 0 30px rgba(255, 94, 0, 0.4); padding: 25px; border-radius: 15px; width: 90%; max-width: 500px; max-height: 85vh; overflow-y: auto; transform: scale(0.8); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; }
@@ -159,7 +172,6 @@ public class TypePickerWebServer {
                 button.save-btn { width: 100%; background: var(--neon); color: #000; border: none; padding: 15px; font-size: 1.1em; font-weight: bold; border-radius: 8px; margin-top: 20px; cursor: pointer; transition: all 0.2s; }
                 button.save-btn:hover { background: #ff7b33; box-shadow: 0 0 15px var(--neon); }
                 
-                /* Scrollbar */
                 ::-webkit-scrollbar { width: 8px; }
                 ::-webkit-scrollbar-track { background: var(--bg); }
                 ::-webkit-scrollbar-thumb { background: var(--neon); border-radius: 4px; }
@@ -186,7 +198,6 @@ public class TypePickerWebServer {
                 const TYPE_NAMES = ["Normal","Fire","Water","Electric","Grass","Ice","Fighting","Poison","Ground","Flying","Psychic","Bug","Rock","Ghost","Dragon","Dark","Steel","Fairy"];
                 let currentPlayerId = null;
 
-                // 1. Fetch online players and build the grid
                 function loadPlayers() {
                     fetch('/api/players')
                         .then(res => res.json())
@@ -217,10 +228,8 @@ public class TypePickerWebServer {
                         .catch(err => console.error("Failed to load players", err));
                 }
 
-                // Initial load
                 loadPlayers();
 
-                // 2. Open the Zoom-In Modal
                 function openModal(player) {
                     currentPlayerId = player.uuid;
                     document.getElementById('modal-name').innerText = player.name + " Configuration";
@@ -257,7 +266,6 @@ public class TypePickerWebServer {
                     }
                 }
 
-                // 3. Save Changes
                 function saveSettings() {
                     const typesData = [];
                     for (let i = 1; i <= 18; i++) {
@@ -281,7 +289,6 @@ public class TypePickerWebServer {
                               status.innerText = "DATA UPLOADED SUCCESSFULLY!";
                               status.style.color = "lightgreen";
                               
-                              // Re-fetch the players so the UI is holding the latest data!
                               loadPlayers(); 
                               
                               setTimeout(() => { 

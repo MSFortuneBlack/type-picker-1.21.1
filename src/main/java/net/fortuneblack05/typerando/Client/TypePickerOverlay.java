@@ -7,12 +7,13 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 
 import java.util.List;
 import java.util.Random;
 
 public class TypePickerOverlay {
-    // Expose these so our Mixin can check them later
+    // State Flags (checked by our Mixin to hide the crosshair)
     public static boolean isSpinning = false;
     public static boolean isSummary = false;
 
@@ -54,27 +55,33 @@ public class TypePickerOverlay {
 
                 if (spinTick < totalSpinTicks) {
                     if (spinTick % interval == 0) {
+                        // Flash a random type while spinning
                         displayType = Types.fromId(1 + rng.nextInt(18)).orElse(Types.NORMAL);
                         if (client.getSoundManager() != null) {
                             client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.BLOCK_NOTE_BLOCK_PLING.value(), 1.0f));
                         }
                     }
                 } else {
+                    // Lock in the final assigned type
                     displayType = finalType;
+
                     if (spinTick == totalSpinTicks && client.getSoundManager() != null) {
+                        // Play the winning chime sounds exactly once
                         client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.BLOCK_NOTE_BLOCK_BELL.value(), 1.0f));
                         client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.BLOCK_NOTE_BLOCK_CHIME.value(), 1.0f));
                         client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.BLOCK_NOTE_BLOCK_BIT.value(), 1.0f));
                     }
+
+                    // Keep it on screen for 2 seconds (40 ticks) after finishing, then hide it
                     if (spinTick > totalSpinTicks + 40) {
-                        isSpinning = false; // Turn off the overlay
+                        isSpinning = false;
                     }
                 }
             }
 
             if (isSummary) {
                 summaryTick++;
-                if (summaryTick > 200) {
+                if (summaryTick > 200) { // Hide summary after 10 seconds
                     isSummary = false;
                 }
             }
@@ -90,11 +97,22 @@ public class TypePickerOverlay {
 
             if (isSpinning) {
                 Text top = (spinTick < totalSpinTicks) ? Text.literal("ROLLING...") : Text.literal("YOUR TYPE:");
-                ctx.drawCenteredTextWithShadow(client.textRenderer, top, cx, cy - 30, 0xFFFFFF);
+                ctx.drawCenteredTextWithShadow(client.textRenderer, top, cx, cy - 45, 0xFFFFFF);
 
-                ctx.drawCenteredTextWithShadow(client.textRenderer, Text.literal(displayType.displayName.toUpperCase()), cx, cy - 5, 0xFFFFFF);
+                // --- DRAW THE TYPE LOGO IMAGE ---
+                Identifier imageToDraw = displayType.texture; // Grabs the texture we set in the Types enum
+                int size = 64; // Sets the image to 64x64 pixels on the screen
 
-                ctx.drawCenteredTextWithShadow(client.textRenderer, Text.literal("#" + displayType.id), cx, cy + 15, 0xAAAAAA);
+                int drawX = cx - (size / 2);
+                int drawY = cy - (size / 2);
+
+                // Draws the texture (Identifier, X, Y, U, V, Width, Height, TextureWidth, TextureHeight)
+                ctx.drawTexture(imageToDraw, drawX, drawY, 0, 0, size, size, size, size);
+                // ---------------------------------
+
+                // Draw the name and ID right below the image
+                String bottomText = displayType.displayName.toUpperCase() + " (#" + displayType.id + ")";
+                ctx.drawCenteredTextWithShadow(client.textRenderer, Text.literal(bottomText), cx, cy + 35, 0xAAAAAA);
             }
 
             if (isSummary) {

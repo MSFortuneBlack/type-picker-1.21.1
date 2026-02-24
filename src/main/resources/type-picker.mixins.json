@@ -3,7 +3,10 @@
 	"package": "net.fortuneblack05.typerando.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"InGameHudMixin"
+		"InGameHudMixin",
+		"ServerPlayerEntityMixin",
+		"PlayerEntityMixin",
+		"SplashTextMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

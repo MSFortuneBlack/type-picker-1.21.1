@@ -2,7 +2,12 @@ package net.fortuneblack05.typerando;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Style;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.WorldSavePath;
 
 import java.io.Reader;
@@ -48,6 +53,19 @@ public class TypePickerManager {
         }
     }
 
+    public void syncPlayerTab(ServerPlayerEntity target) {
+        if (target.getServer() == null) return;
+
+        // Create the packet that specifically tells clients to update the display name
+        PlayerListS2CPacket packet = new PlayerListS2CPacket(
+                EnumSet.of(PlayerListS2CPacket.Action.UPDATE_DISPLAY_NAME),
+                List.of(target)
+        );
+
+        // Broadcast it to every connected player
+        target.getServer().getPlayerManager().sendToAll(packet);
+    }
+
     public void save(MinecraftServer server) {
         Path file = saveFile(server);
         try (Writer w = Files.newBufferedWriter(file)) {
@@ -75,6 +93,19 @@ public class TypePickerManager {
         allUuids.addAll(blacklists.keySet());
         allUuids.addAll(weights.keySet());
         return allUuids;
+    }
+
+    public void refreshTabList(ServerPlayerEntity player) {
+        if (player.getServer() == null) return;
+
+        // Create a packet specifically meant for updating the display name
+        PlayerListS2CPacket packet = new PlayerListS2CPacket(
+                EnumSet.of(PlayerListS2CPacket.Action.UPDATE_DISPLAY_NAME),
+                List.of(player)
+        );
+
+        // Send it to everyone on the server so they instantly see the new icon
+        player.getServer().getPlayerManager().sendToAll(packet);
     }
 
     public void setBlacklist(String uuid, int typeId, boolean isBlacklisted) {
