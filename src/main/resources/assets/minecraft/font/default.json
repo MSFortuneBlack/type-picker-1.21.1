@@ -1,0 +1,22 @@
+{
+  "providers": [
+    { "type": "bitmap", "file": "type-picker:gui/types/1.png", "ascent": 8, "height": 9, "chars": ["\uE001"] },
+    { "type": "bitmap", "file": "type-picker:gui/types/2.png", "ascent": 8, "height": 9, "chars": ["\uE002"] },
+    { "type": "bitmap", "file": "type-picker:gui/types/3.png", "ascent": 8, "height": 9, "chars": ["\uE003"] },
+    { "type": "bitmap", "file": "type-picker:gui/types/4.png", "ascent": 8, "height": 9, "chars": ["\uE004"] },
+    { "type": "bitmap", "file": "type-picker:gui/types/5.png", "ascent": 8, "height": 9, "chars": ["\uE005"] },
+    { "type": "bitmap", "file": "type-picker:gui/types/6.png", "ascent": 8, "height": 9, "chars": ["\uE006"] },
+    { "type": "bitmap", "file": "type-picker:gui/types/7.png", "ascent": 8, "height": 9, "chars": ["\uE007"] },
+    { "type": "bitmap", "file": "type-picker:gui/types/8.png", "ascent": 8, "height": 9, "chars": ["\uE008"] },
+    { "type": "bitmap", "file": "type-picker:gui/types/9.png", "ascent": 8, "height": 9, "chars": ["\uE009"] },
+    { "type": "bitmap", "file": "type-picker:gui/types/10.png", "ascent": 8, "height": 9, "chars": ["\uE00A"] },
+    { "type": "bitmap", "file": "type-picker:gui/types/11.png", "ascent": 8, "height": 9, "chars": ["\uE00B"] },
+    { "type": "bitmap", "file": "type-picker:gui/types/12.png", "ascent": 8, "height": 9, "chars": ["\uE00C"] },
+    { "type": "bitmap", "file": "type-picker:gui/types/13.png", "ascent": 8, "height": 9, "chars": ["\uE00D"] },
+    { "type": "bitmap", "file": "type-picker:gui/types/14.png", "ascent": 8, "height": 9, "chars": ["\uE00E"] },
+    { "type": "bitmap", "file": "type-picker:gui/types/15.png", "ascent": 8, "height": 9, "chars": ["\uE00F"] },
+    { "type": "bitmap", "file": "type-picker:gui/types/16.png", "ascent": 8, "height": 9, "chars": ["\uE010"] },
+    { "type": "bitmap", "file": "type-picker:gui/types/17.png", "ascent": 8, "height": 9, "chars": ["\uE011"] },
+    { "type": "bitmap", "file": "type-picker:gui/types/18.png", "ascent": 8, "height": 9, "chars": ["\uE012"] }
+  ]
+}
