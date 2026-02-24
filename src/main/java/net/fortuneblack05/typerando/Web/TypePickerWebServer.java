@@ -96,7 +96,13 @@ public class TypePickerWebServer {
                         exchange.getResponseHeaders().set("Content-Type", "application/json");
                         exchange.sendResponseHeaders(200, response.length());
                         try (OutputStream os = exchange.getResponseBody()) { os.write(response.getBytes()); }
+                    } catch (Exception e) {
+                        String error = "{\"status\":\"error\", \"message\":\"" + e.getMessage() + "\"}";
+                        exchange.sendResponseHeaders(500, error.length());
+                        try (OutputStream os = exchange.getResponseBody()) { os.write(error.getBytes()); }
                     }
+                } else {
+                    exchange.sendResponseHeaders(405, -1);
                 }
             });
 
@@ -117,7 +123,7 @@ public class TypePickerWebServer {
         <!DOCTYPE html>
         <html>
         <head>
-            <title>TypeRando</title>
+            <title>TypeRando - Live Dashboard</title>
             <style>
                 :root { --neon: #ff5e00; --bg: #0a0a0a; --panel: #141414; }
                 body { background: var(--bg); color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; }
@@ -160,7 +166,7 @@ public class TypePickerWebServer {
             </style>
         </head>
         <body>
-            <h1>TYPERANDO</h1>
+            <h1>TYPERANDO LIVE NETWORK</h1>
             <div class="grid" id="player-grid">Loading players...</div>
 
             <div class="modal-overlay" id="modal" onclick="closeModal(event)">
@@ -180,35 +186,39 @@ public class TypePickerWebServer {
                 const TYPE_NAMES = ["Normal","Fire","Water","Electric","Grass","Ice","Fighting","Poison","Ground","Flying","Psychic","Bug","Rock","Ghost","Dragon","Dark","Steel","Fairy"];
                 let currentPlayerId = null;
 
-                // 1. Fetch online players on load
-                fetch('/api/players')
-                    .then(res => res.json())
-                    .then(players => {
-                        const grid = document.getElementById('player-grid');
-                        grid.innerHTML = '';
-                        if (players.length === 0) {
-                            grid.innerHTML = '<p style="color:#aaa;">No players currently online.</p>';
-                            return;
-                        }
+                // 1. Fetch online players and build the grid
+                function loadPlayers() {
+                    fetch('/api/players')
+                        .then(res => res.json())
+                        .then(players => {
+                            const grid = document.getElementById('player-grid');
+                            grid.innerHTML = '';
+                            if (players.length === 0) {
+                                grid.innerHTML = '<p style="color:#aaa;">No players currently online.</p>';
+                                return;
+                            }
 
-                        players.forEach(p => {
-                            // Fetch skin head using Minotar/Crafatar API
-                            const headUrl = `https://crafatar.com/avatars/${p.uuid}?overlay=true`;
-                            
-                            const card = document.createElement('div');
-                            card.className = 'card';
-                            card.innerHTML = `
-                                <img src="${headUrl}" alt="${p.name}'s Head" onerror="this.src='https://crafatar.com/avatars/8667ba71b85a4004af54457a9734eed7'">
-                                <div class="card-info">
-                                    <h3>${p.name}</h3>
-                                    <p>${p.uuid.split('-')[0]}...</p>
-                                    <span class="type-badge">Type: ${p.currentType}</span>
-                                </div>
-                            `;
-                            card.onclick = () => openModal(p);
-                            grid.appendChild(card);
-                        });
-                    });
+                            players.forEach(p => {
+                                const headUrl = `https://crafatar.com/avatars/${p.uuid}?overlay=true`;
+                                const card = document.createElement('div');
+                                card.className = 'card';
+                                card.innerHTML = `
+                                    <img src="${headUrl}" alt="${p.name}'s Head" onerror="this.src='https://crafatar.com/avatars/8667ba71b85a4004af54457a9734eed7'">
+                                    <div class="card-info">
+                                        <h3>${p.name}</h3>
+                                        <p>${p.uuid.split('-')[0]}...</p>
+                                        <span class="type-badge">Type: ${p.currentType}</span>
+                                    </div>
+                                `;
+                                card.onclick = () => openModal(p);
+                                grid.appendChild(card);
+                            });
+                        })
+                        .catch(err => console.error("Failed to load players", err));
+                }
+
+                // Initial load
+                loadPlayers();
 
                 // 2. Open the Zoom-In Modal
                 function openModal(player) {
@@ -218,7 +228,6 @@ public class TypePickerWebServer {
                     const list = document.getElementById('types-list');
                     list.innerHTML = '';
 
-                    // Generate 18 rows
                     for (let i = 1; i <= 18; i++) {
                         const typeName = TYPE_NAMES[i - 1];
                         const currentWeight = player.weights[i] || 1.0;
@@ -268,9 +277,21 @@ public class TypePickerWebServer {
                     }).then(res => res.json())
                       .then(json => {
                           const status = document.getElementById('status');
-                          status.innerText = "DATA UPLOADED SUCCESSFULLY!";
-                          status.style.color = "lightgreen";
-                          setTimeout(() => { status.innerText = ""; document.getElementById('modal').classList.remove('open'); }, 1500);
+                          if(json.status === 'success') {
+                              status.innerText = "DATA UPLOADED SUCCESSFULLY!";
+                              status.style.color = "lightgreen";
+                              
+                              // Re-fetch the players so the UI is holding the latest data!
+                              loadPlayers(); 
+                              
+                              setTimeout(() => { 
+                                  status.innerText = ""; 
+                                  document.getElementById('modal').classList.remove('open'); 
+                              }, 1500);
+                          } else {
+                              status.innerText = "Error: " + json.message;
+                              status.style.color = "red";
+                          }
                       })
                       .catch(err => {
                           document.getElementById('status').innerText = "CONNECTION ERROR.";
