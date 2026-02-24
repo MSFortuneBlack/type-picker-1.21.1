@@ -58,6 +58,65 @@ public class TypePickerCommands {
                     return 1;
                 })
 
+
+                        // ... inside your dispatcher.register(literal("typepicker") block ...
+
+// /typepicker clear <player>
+                        .then(literal("clear")
+                                .then(argument("player", StringArgumentType.word())
+                                        .executes(ctx -> {
+                                            ServerCommandSource src = ctx.getSource();
+                                            String name = StringArgumentType.getString(ctx, "player");
+                                            ServerPlayerEntity target = src.getServer().getPlayerManager().getPlayer(name);
+
+                                            if (target == null) {
+                                                src.sendError(Text.literal("Player must be online."));
+                                                return 0;
+                                            }
+
+                                            TypePicker.MANAGER.clearRole(target.getUuid());
+                                            TypePicker.MANAGER.save(src.getServer());
+                                            src.sendFeedback(() -> Text.literal("Cleared type for " + target.getName().getString()), true);
+                                            return 1;
+                                        })
+                                )
+                        )
+
+                    // /typepicker reroll <player>
+                        .then(literal("reroll")
+                                .then(argument("player", StringArgumentType.word())
+                                        .executes(ctx -> {
+                                            ServerCommandSource src = ctx.getSource();
+                                            String name = StringArgumentType.getString(ctx, "player");
+                                            ServerPlayerEntity target = src.getServer().getPlayerManager().getPlayer(name);
+
+                                            if (target == null) {
+                                                src.sendError(Text.literal("Player must be online."));
+                                                return 0;
+                                            }
+
+                                            // Clear their current role first
+                                            TypePicker.MANAGER.clearRole(target.getUuid());
+
+                                            // Assign a new one based on weights/blacklists
+                                            Optional<Types> assigned = TypePicker.MANAGER.assignIfMissing(target.getUuid());
+                                            if (assigned.isEmpty()) {
+                                                src.sendError(Text.literal("No valid types left to assign them!"));
+                                                return 0;
+                                            }
+
+                                            TypePicker.MANAGER.save(src.getServer());
+
+                                            // Trigger the spin animation
+                                            int spinTicks = 80 + RNG.nextInt(60);
+                                            ServerPlayNetworking.send(target, new SpinResult(assigned.get().id, spinTicks));
+
+                                            src.sendFeedback(() -> Text.literal("Rerolled type for " + target.getName().getString()), true);
+                                            return 1;
+                                        })
+                                )
+                        )
+
                 // /typepicker <playerName>
                 .then(argument("player", StringArgumentType.word())
                         .executes(ctx -> {
