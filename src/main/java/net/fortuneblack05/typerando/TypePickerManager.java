@@ -23,6 +23,7 @@ public class TypePickerManager {
     private final Map<String, Integer> roles = new HashMap<>();
     private final Map<String, Set<Integer>> blacklists = new HashMap<>();
     private final Map<String, Map<Integer, Double>> weights = new HashMap<>();
+    private final Map<UUID, Integer> activeSpins = new HashMap<>();
     private final Random random = new Random();
 
     // A helper class just for saving/loading all this data to JSON neatly
@@ -30,6 +31,34 @@ public class TypePickerManager {
         Map<String, Integer> roles = new HashMap<>();
         Map<String, Set<Integer>> blacklists = new HashMap<>();
         Map<String, Map<Integer, Double>> weights = new HashMap<>();
+    }
+
+    public void setSpinning(UUID uuid, int ticks) {
+        activeSpins.put(uuid, ticks);
+    }
+
+    // 2. The Tick Counter
+    public void tickSpins(MinecraftServer server) {
+        if (activeSpins.isEmpty()) return;
+
+        Iterator<Map.Entry<UUID, Integer>> it = activeSpins.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<UUID, Integer> entry = it.next();
+            int remainingTicks = entry.getValue() - 1;
+
+            if (remainingTicks <= 0) {
+                // The animation is done! Remove the blindfold.
+                it.remove();
+
+                // Instantly force the network packet to reveal the logo to everyone
+                ServerPlayerEntity p = server.getPlayerManager().getPlayer(entry.getKey());
+                if (p != null) {
+                    syncPlayerTab(p);
+                }
+            } else {
+                entry.setValue(remainingTicks);
+            }
+        }
     }
 
     private Path saveFile(MinecraftServer server) {
@@ -56,13 +85,10 @@ public class TypePickerManager {
     public void syncPlayerTab(ServerPlayerEntity target) {
         if (target.getServer() == null) return;
 
-        // Create the packet that specifically tells clients to update the display name
         PlayerListS2CPacket packet = new PlayerListS2CPacket(
                 EnumSet.of(PlayerListS2CPacket.Action.UPDATE_DISPLAY_NAME),
                 List.of(target)
         );
-
-        // Broadcast it to every connected player
         target.getServer().getPlayerManager().sendToAll(packet);
     }
 
@@ -131,6 +157,8 @@ public class TypePickerManager {
     }
 
     public Optional<Types> getRole(UUID uuid) {
+        if (activeSpins.containsKey(uuid)) return Optional.empty();
+
         Integer id = roles.get(uuid.toString());
         return id == null ? Optional.empty() : Types.fromId(id);
     }

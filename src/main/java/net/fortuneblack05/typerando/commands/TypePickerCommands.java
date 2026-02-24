@@ -22,10 +22,9 @@ public class TypePickerCommands {
 
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
         dispatcher.register(literal("typepicker")
-                // OP-only: permission level 2+
                 .requires(src -> src.hasPermissionLevel(2))
 
-                // 1. /typepicker (assign to everyone online missing a type)
+                // 1. /typepicker (assign to everyone missing a type)
                 .executes(ctx -> {
                     ServerCommandSource src = ctx.getSource();
                     List<ServerPlayerEntity> players = src.getServer().getPlayerManager().getPlayerList();
@@ -41,15 +40,17 @@ public class TypePickerCommands {
                         }
 
                         TypePicker.MANAGER.save(src.getServer());
-                        TypePicker.MANAGER.syncPlayerTab(p); // <-- Instantly updates TAB
 
                         int spinTicks = 80 + RNG.nextInt(60);
+                        // Tell the manager to hide the logo until the spin finishes
+                        TypePicker.MANAGER.setSpinning(p.getUuid(), spinTicks);
+
                         ServerPlayNetworking.send(p, new SpinResult(assigned.get().id, spinTicks));
                         assignedCount++;
                     }
 
                     final int finalCount = assignedCount;
-                    src.sendFeedback(() -> Text.literal("TypePicker: assigned " + finalCount + " player(s)."), true);
+                    src.sendFeedback(() -> Text.literal("TypePicker: rolling for " + finalCount + " player(s)."), true);
                     return 1;
                 })
 
@@ -62,13 +63,15 @@ public class TypePickerCommands {
                                     ServerPlayerEntity target = src.getServer().getPlayerManager().getPlayer(name);
 
                                     if (target == null) {
-                                        src.sendError(Text.literal("Player not found or offline: " + name));
+                                        src.sendError(Text.literal("Player not found: " + name));
                                         return 0;
                                     }
 
                                     TypePicker.MANAGER.clearRole(target.getUuid());
                                     TypePicker.MANAGER.save(src.getServer());
-                                    TypePicker.MANAGER.syncPlayerTab(target); // <-- Instantly clears TAB logo
+
+                                    // Clearing has no animation, so sync instantly!
+                                    TypePicker.MANAGER.syncPlayerTab(target);
 
                                     src.sendFeedback(() -> Text.literal("Cleared type for " + target.getName().getString()), true);
                                     return 1;
@@ -85,33 +88,33 @@ public class TypePickerCommands {
                                     ServerPlayerEntity target = src.getServer().getPlayerManager().getPlayer(name);
 
                                     if (target == null) {
-                                        src.sendError(Text.literal("Player not found or offline: " + name));
+                                        src.sendError(Text.literal("Player not found: " + name));
                                         return 0;
                                     }
 
-                                    // Clear current role
                                     TypePicker.MANAGER.clearRole(target.getUuid());
-
-                                    // Assign a new one
                                     Optional<Types> assigned = TypePicker.MANAGER.assignIfMissing(target.getUuid());
+
                                     if (assigned.isEmpty()) {
                                         src.sendError(Text.literal("No valid types left to assign!"));
                                         return 0;
                                     }
 
                                     TypePicker.MANAGER.save(src.getServer());
-                                    TypePicker.MANAGER.syncPlayerTab(target); // <-- Instantly updates to new TAB logo
 
                                     int spinTicks = 80 + RNG.nextInt(60);
+                                    // Start the blindfold timer
+                                    TypePicker.MANAGER.setSpinning(target.getUuid(), spinTicks);
+
                                     ServerPlayNetworking.send(target, new SpinResult(assigned.get().id, spinTicks));
 
-                                    src.sendFeedback(() -> Text.literal("Rerolled type for " + target.getName().getString()), true);
+                                    src.sendFeedback(() -> Text.literal("Rerolling type for " + target.getName().getString()), true);
                                     return 1;
                                 })
                         )
                 )
 
-                // 4. /typepicker <player> (assign to specific player if they are missing one)
+                // 4. /typepicker <player>
                 .then(argument("player", StringArgumentType.word())
                         .executes(ctx -> {
                             ServerCommandSource src = ctx.getSource();
@@ -119,12 +122,12 @@ public class TypePickerCommands {
                             ServerPlayerEntity target = src.getServer().getPlayerManager().getPlayer(name);
 
                             if (target == null) {
-                                src.sendError(Text.literal("Player not found or offline: " + name));
+                                src.sendError(Text.literal("Player not found: " + name));
                                 return 0;
                             }
 
                             if (TypePicker.MANAGER.hasRole(target.getUuid())) {
-                                src.sendError(Text.literal("That player already has a type. Use /typepicker reroll instead."));
+                                src.sendError(Text.literal("That player already has a type. Use reroll."));
                                 return 0;
                             }
 
@@ -135,12 +138,14 @@ public class TypePickerCommands {
                             }
 
                             TypePicker.MANAGER.save(src.getServer());
-                            TypePicker.MANAGER.syncPlayerTab(target); // <-- Instantly updates TAB
 
                             int spinTicks = 80 + RNG.nextInt(60);
+                            // Start the blindfold timer
+                            TypePicker.MANAGER.setSpinning(target.getUuid(), spinTicks);
+
                             ServerPlayNetworking.send(target, new SpinResult(assigned.get().id, spinTicks));
 
-                            src.sendFeedback(() -> Text.literal("TypePicker: spun for " + target.getName().getString()), true);
+                            src.sendFeedback(() -> Text.literal("Rolling for " + target.getName().getString()), true);
                             return 1;
                         })
                 )
