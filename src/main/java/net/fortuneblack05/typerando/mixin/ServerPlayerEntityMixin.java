@@ -22,9 +22,10 @@ public class ServerPlayerEntityMixin {
         Optional<Types> role = TypePicker.MANAGER.getRole(player.getUuid());
 
         if (role.isPresent()) {
-            // Take their default name and slap the logo text on the end
-            Text tabName = player.getName().copy()
-                    .append(Text.literal(" " + role.get().tabIcon).setStyle(Style.EMPTY.withColor(Formatting.WHITE)));
+            // Put the logo on the LEFT, then append the player's name
+            Text tabName = Text.literal(role.get().tabIcon + " ")
+                    .setStyle(Style.EMPTY.withColor(Formatting.WHITE))
+                    .append(player.getName());
 
             cir.setReturnValue(tabName);
         }
