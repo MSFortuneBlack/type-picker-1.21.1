@@ -23,25 +23,27 @@ public class PlayerEntityMixin {
         PlayerEntity player = (PlayerEntity) (Object) this;
 
         if (player.getWorld().isClient) {
-            // --- CLIENT SIDE (3D Floating Nametags) -> Logo on the RIGHT ---
+            // --- CLIENT SIDE (3D Floating Nametags) ---
             MinecraftClient client = MinecraftClient.getInstance();
             if (client.getNetworkHandler() != null) {
                 PlayerListEntry entry = client.getNetworkHandler().getPlayerListEntry(player.getUuid());
 
                 if (entry != null && entry.getDisplayName() != null) {
-                    // Grab the raw text from the TAB menu
                     String rawTabName = entry.getDisplayName().getString();
 
                     if (!rawTabName.isEmpty()) {
                         char firstChar = rawTabName.charAt(0);
 
-                        // Check if the first character is actually one of our logos
+                        // Check if the TAB list has one of the base 1-18 logos
                         if (firstChar >= '\uE001' && firstChar <= '\uE012') {
-                            String icon = String.valueOf(firstChar);
 
-                            // Take the player's name and append the logo to the RIGHT
+                            // SHIFT TRICK: Add 18 to the character code to get the "a" variant!
+                            char shiftedChar = (char) (firstChar + 18);
+                            String icon3D = String.valueOf(shiftedChar);
+
+                            // Append the new shifted 3D logo to the RIGHT side of the name
                             Text newName = cir.getReturnValue().copy()
-                                    .append(Text.literal(" " + icon).setStyle(Style.EMPTY.withColor(Formatting.WHITE)));
+                                    .append(Text.literal(" " + icon3D).setStyle(Style.EMPTY.withColor(Formatting.WHITE)));
 
                             cir.setReturnValue(newName);
                         }
@@ -52,8 +54,6 @@ public class PlayerEntityMixin {
             // --- SERVER SIDE (Chat Messages) -> Logo on the LEFT ---
             Optional<Types> role = TypePicker.MANAGER.getRole(player.getUuid());
             if (role.isPresent()) {
-
-                // Put the logo on the LEFT, then append the player's name
                 Text newName = Text.literal(role.get().tabIcon + " ")
                         .setStyle(Style.EMPTY.withColor(Formatting.WHITE))
                         .append(cir.getReturnValue());

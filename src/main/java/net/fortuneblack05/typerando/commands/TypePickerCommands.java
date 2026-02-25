@@ -6,9 +6,17 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fortuneblack05.typerando.TypePicker;
 import net.fortuneblack05.typerando.Types;
 import net.fortuneblack05.typerando.payloads.SpinResult;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.StringNbtReader;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.math.Vec3d;
 
 import java.util.List;
 import java.util.Optional;
@@ -112,6 +120,33 @@ public class TypePickerCommands {
                                     return 1;
                                 })
                         )
+                )
+
+                .then(literal("summon_npc")
+                        .executes(ctx -> {
+                            ServerCommandSource src = ctx.getSource();
+                            ServerWorld world = src.getWorld();
+                            Vec3d pos = src.getPosition(); // Gets the exact coordinates of whoever ran the command
+
+                            try {
+                                EntityType<?> npcType = Registries.ENTITY_TYPE.get(Identifier.of("cobblemon", "npc"));
+                                String nbtString = "{Tags:[\"msfortuneblack_npc\"], PersistenceRequired:1b, CustomName:'{\"text\":\"MSFortuneBlack\"}', CustomNameVisible:1b, npcConfiguration: {name: \"MSFortuneBlack\", modelType: \"player\", playerProfile: \"MSFortuneBlack\", movementState: \"WANDER\", lookState: \"WANDER\"}}";
+                                NbtCompound nbt = StringNbtReader.parse(nbtString);
+
+                                Entity npc = npcType.create(world);
+                                if (npc != null) {
+                                    npc.readNbt(nbt);
+                                    // Drop the NPC exactly where the player is looking/standing
+                                    npc.setPosition(pos.x, pos.y, pos.z);
+                                    world.spawnEntity(npc);
+
+                                    src.sendFeedback(() -> Text.literal("MSFortuneBlack has arrived."), true);
+                                }
+                            } catch (Exception e) {
+                                src.sendError(Text.literal("Failed to summon NPC: " + e.getMessage()));
+                            }
+                            return 1;
+                        })
                 )
 
                 // 4. /typepicker <player>
