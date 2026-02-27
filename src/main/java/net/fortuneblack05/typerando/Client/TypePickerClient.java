@@ -3,6 +3,7 @@ package net.fortuneblack05.typerando.Client;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fortuneblack05.typerando.cobblemon.CobblemonIntegration;
 import net.fortuneblack05.typerando.payloads.RollSummary;
 import net.fortuneblack05.typerando.payloads.SpinResult;
 import net.fortuneblack05.typerando.Types;

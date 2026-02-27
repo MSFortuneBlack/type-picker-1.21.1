@@ -19,7 +19,7 @@
 			"net.fortuneblack05.typerando.TypePicker"
 		],
 		"fabric-datagen": [
-			"net.fortuneblack05.typerando.TypePickerDataGenerator"
+			"net.fortuneblack05.typerando.datagen.TypeRandoDataGen"
 		],
 		"client": [
 			"net.fortuneblack05.typerando.Client.TypePickerClient"
